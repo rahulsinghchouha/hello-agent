@@ -13,11 +13,11 @@ type GeminiGenerateContent = {
 
 async function helloGemini(): Promise<HelloOutput> {
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-        throw new Error("GROQ_API_KEY is not set in the environment variables.");
+        throw new Error("GOOGLE_API_KEY is not set in the environment variables.");
     }
-    const model = "gemini-2.5-flash-lite";
+    const model = "gemini-3.5-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -41,6 +41,8 @@ async function helloGemini(): Promise<HelloOutput> {
     const json = await response.json() as GeminiGenerateContent;
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "No content returned";
 
+    console.log("Gemini API response:", text);
+
     return {
         ok: true,
         provider: "gemini",
@@ -63,7 +65,7 @@ async function helloGroq(): Promise<HelloOutput> {
         throw new Error("GROQ_API_KEY is not set in the environment variables.");
     }
 
-    const model = "llama-3.1-8b-instant";
+    const model = "openai/gpt-oss-20b";
     const url = `https://api.groq.com/openai/v1/chat/completions`;
 
     const response = await fetch(url, {
