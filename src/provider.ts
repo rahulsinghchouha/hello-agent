@@ -1,14 +1,14 @@
 type Provider = "gemini" | "openai" | "groq";
 
 type HelloOutput = {
-  ok:true;
-  provider: Provider;
-  model: string;
-  message: string;
+    ok: true;
+    provider: Provider;
+    model: string;
+    message: string;
 };
 
-type GeminiGenerateContent = { 
-    candidates?:Array<{content?:{parts?: Array<{text?:string}>}}>;
+type GeminiGenerateContent = {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
 }
 
 async function helloGemini(): Promise<HelloOutput> {
@@ -26,11 +26,11 @@ async function helloGemini(): Promise<HelloOutput> {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-           contents: [{
+            contents: [{
                 parts: [{
                     text: "Hello, world!"
                 }]
-           }]
+            }]
         }),
     });
 
@@ -45,7 +45,7 @@ async function helloGemini(): Promise<HelloOutput> {
         ok: true,
         provider: "gemini",
         model,
-        message: text,
+        message: String(text).trim(),
     };
 
 }
@@ -53,7 +53,7 @@ async function helloGemini(): Promise<HelloOutput> {
 //GROQ
 
 type OpenAiChatCompletion = {
-    choices?: Array<{ message?: { content?: string; }}>;
+    choices?: Array<{ message?: { content?: string; } }>;
 };
 
 async function helloGroq(): Promise<HelloOutput> {
@@ -75,7 +75,7 @@ async function helloGroq(): Promise<HelloOutput> {
         body: JSON.stringify({
             model,
             messages: [
-                   { role: "user", content: "Hello, world!" }             
+                { role: "user", content: "Hello, world!" }
             ],
             temperature: 0
         }),
@@ -91,7 +91,94 @@ async function helloGroq(): Promise<HelloOutput> {
         ok: true,
         provider: "groq",
         model,
-        message: text,
+        message: String(text).trim(),
     };
 
 }
+
+//OpenAI
+
+async function helloOpenAI(): Promise<HelloOutput> {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+        throw new Error("OPENAI_API_KEY is not set in the environment variables.");
+    }
+
+    const model = "llama-3.1-8b-instant";
+    const url = `https://api.openai.com/v1/chat/completions`;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: "user", content: "Hello, world!" }
+            ],
+            temperature: 0
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`Error calling OpenAI API: ${response.status} : ${await response.text()}`);
+    }
+
+    const json = await response.json() as OpenAiChatCompletion;
+    const text = json.choices?.[0]?.message?.content || "No content returned";
+
+    return {
+        ok: true,
+        provider: "openai",
+        model,
+        message: String(text).trim(),
+    };
+
+}
+
+export async function selectAndHello(): Promise<HelloOutput> {
+    const forced = (process.env.PROVIDER || "").toLowerCase();
+
+    if (!forced) {
+        throw new Error("PROVIDER is not set in the environment variables.");
+    }
+
+    if (forced === "gemini") {
+        return await helloGemini();
+    } else if (forced === "groq") {
+        return await helloGroq();
+    } else if (forced === "openai") {
+        return await helloOpenAI();
+    } else {
+        throw new Error(`Unsupported provider: ${forced}`);
+    }
+
+    // if (process.env.GEMINI_API_KEY) {
+    //     try {
+    //         return await helloGemini();
+    //     } catch (error) {
+    //         console.error("Error calling Gemini API:", error);
+    //         throw error;
+    //     }
+    // }
+    // if (process.env.GROQ_API_KEY) {
+    //     try {
+    //         return await helloGroq();
+    //     } catch (error) {
+    //         console.error("Error calling Groq API:", error);
+    //         throw error;
+    //     }
+    // }
+    // if (process.env.OPENAI_API_KEY) {
+    //     try {
+    //         return await helloOpenAI();
+    //     } catch (error) {
+    //         console.error("Error calling OpenAI API:", error);
+    //         throw error;
+    //     }
+    // }
+
+}
+
